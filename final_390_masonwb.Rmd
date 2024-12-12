@@ -1,0 +1,112 @@
+---
+title: "Probability of mortality of critically ill cancer patients at 72 h of intensive care unit (ICU) management"
+author: "Mason Boyles"
+date: "2024-12-12"
+output: pdf_document
+fontsize: 12pt
+---
+
+# Introduction
+
+An Intensive Care Unit (ICU) is a specialized hospital ward that is responsible for receiving patients who require critical care and constant monitoring. This can be because a patient recently received complex treatments such as chemotherapy or surgery and they have complications such as organ failure or it could also be for end-of-life care. Because of this, ICUs require advanced medical equipment and highly trained healthcare professionals which can lead to a shortage in availability, especially in peak periods or areas of high demand. In fact, the average hospital's ICU was around 90% full with 113 hospitals at or above 100% in December 2020, during the Covid pandemic (McCarthy and Richter). This shortage of ICU beds can lead to a variety of impacts. The first of which being that not everyone is always able to receive the care they may require, which leaves hospitals with the complicated task of prioritizing some patients over others. In addition, it can stretch resources thin and lead to lower quality care for all people in the ICU when capacity is above 100%.
+
+This leads me to the topic of my paper, predicting the probability of mortality of critically ill cancer patients. The goal of the paper was to develop and validate a model that will predict the mortality of patients after 72 hours of ICU management using an inception cohort study performed at four ICUs of academic medical centers in the United States. In total, it used 827 patients as data to develop multiple logistic regression models and then validated on an additional 415 patients leading to approximately a 2/3 : 1/3 training to testing ratio. These results were then evaluated for discrimination and calibration. 
+
+# Analysis of Methods
+
+While I appreciate the findings of this paper and believe that they have a positive impact on the research of cancer mortality as a whole, I did notice several shortcomings in their methodology which call into question the validity of the results.
+
+One significant issue with the methodology used arises in the data collection phase and whether the data will extrapolate well. Data for the study came from four ICU units including the Medical/Surgical ICU of Memorial Sloan Kettering Cancer Center (MSKCC), New York, NY, USA; the City of Hope National Medical Center, Duarte, CA, USA; the Medical ICU of The University of Texas, M.D. Anderson Cancer Center, Houston, TX, USA: and the Mount Sinai Medical Center, New York, NY, USA. Each of these four ICUs is located in a highly urbanized area and near one of the top 5 most populated cities in the United States. While this enhances the ability of the sample to predict well for well-funded, urban ICUs, it calls into question whether or not the model would generalize well to ICUs located in more rural regions. Hospitals in more rural regions have the potential to represent distinct demographic profiles, different policies for resource allocation, and different constraints on resources. This geographic diversity not being accounted for in the data set used is a major concern because it could cause significant differences in the outlook of patients.
+
+Another issue I see in the methodology of this study is in the handling of missing data. In the methodology, they describe how there were many missing values in the complete data set and to handle this, they tried filling in the gaps by imputing missing values. Specifically, they handled this by imputing a value of "No", "Never", or "Normal" if the variable was categorical, and a value "within normal limits" if the variable was continuous. I have two major problems with this methodology. The first of which is how they don't really specify how exactly a value is determined to be "within normal limits", calling into question the trustworthiness and reproducibility of their results. More importantly, however, is the potential for this to introduce bias. Specifically, if the variables that are missing are not missing at random, bias could occur. Simply imputing normal values for all missing data could over-simplify the real variability of the data and harm the overall model. Instead, it may have been better to create a more robust method to handle missing data to preserve the integrity of the data.
+
+One last critique I have for the methodology of this study is in the variable selection. In particular, one of the criteria that was described for variable selection was clinical judgment. This term was used multiple times in the paper but was never properly discussed. According to the paper, clinical judgment was used as a factor to guide initial variable selection as well as cut-point decisions. One could assume that it had to do with professionals giving their anecdotal advice on what factors are important in determining patient survival, but the paper never really says exactly how this is factored in. This could be a potential source of bias as it could be a subjective matter. Alternatively, I would have liked to see them provide details on how exactly clinical judgment was weighed in and if there was any predefined list of variables considered to help make this a consistent judgment. In addition, I have a problem with the exclusion of the variables, total body irradiation and duration of hospitalization prior to ICU admission. These variables were found to be significant during their regression analysis, but were ultimately excluded from the model because they "did not add to the robustness of the final model and were eliminated". While this may have been backed by a good reason (collinearity or model performance on testing set), the specifics were never properly explained, leaving the reader guessing why exactly they were excluded.
+
+## Novel Analysis
+
+Additionally, I conducted a couple of forms of novel analysis to ensure that the methods used in the paper were reproducible and the numbers would line up as expected.
+
+The first thing I did to confirm the methods in the paper was reproduce the calculation they did for a sample patient's mortality. This was done for a patient with the following profile: 
+
+**Table 1** Calculations Coefficients and Observed Patient Data
+
+| **Variable** | *$\hat{\beta}$* | **x** |
+|:------------:|:-----:|:-----:|:-----:|
+| Evidence of disease progression | 0.4535 |   1  |
+| Assistance required(Zubrod 2 or 3)     | 0.4775 |   1  |
+| or Bedridden (Zubrod 4) | 1.4949 |   0  |
+| Glasgow coma score <= 5           | 1.3178 |   0  |
+| PaO2/FiO2 ratio < 250          | 0.9131 |   1  |
+| Heart rate> 100 beats/min          | 0.4012 |   1  |
+| Platelets <100 k/$\mu$l          | 0.8886 |   1  |
+| Serum bicarbonate <20 mEq/l          | 0.5281 |   1  |
+| BUN >40 (mg/dl)          | 0.6609 |   0  |
+| Urine output <150 ml/any 8 h          | 0.8293 |   0  |
+| Mechanically ventilated          | 1.1764 |   1  |
+| Serum bicarbonate <20 mEq/l          | 0.5281 |   1  |
+| BUN >40 (mg/dl)          | 0.6609 |   0  |
+| Urine output <150 ml/any 8 h          | 0.8293 |   0  |
+| Mechanically ventilated          | 1.1764 |   1  |
+| Constant | ~2.3854 |   1  |
+
+Using these values, I then created a logit by multiplying each of the coefficients by the observed values (0 or 1). Finally, I found the probability by dividing $\frac{e^{logit}}{1+ e^{logit}}$. The resulting probability was 0.9207806 with a logit of 2.453. This matches up exactly with the results shared in the study, leading me to conclude that the methodology for applying their model was done correctly and well described
+
+Further, I also wanted to do a simulation to show whether or not their model is accurate using rough estimations. In order to do this, I wanted to take the true probability of death in the training data and ensure that after running the model and classifying a sample of patients, I would end up with a similar mortality rate. However, this was very difficult because the data used by the study was not provided and it was difficult to find similar data online.
+
+This led me to create my own synthetic data. My methodology for this was to take the provided information about the mean and standard deviation of continuous variables to generate normal data, and then use the true distribution of categorical variables to sample random data. Another issue with creating synthetic data was that in the paper, there was no mention of the distribution of the mechanical ventilation variable. As such, I estimated this by using data from the NIH on the proportion of ICU patients who were mechanically ventilated (I admit that this may not be the most accurate estimation, but it was the best I could acquire).
+
+From there, I generated the 1000 rows of random data and categorized the data based on the cutoffs listed in the paper, leaving me with a table of the following form with 1000 entries:
+
+**Table 2** Sample of Final Generated Data Table
+
+| **evid_prog** | **ass_req** | **bedridden** | **urine** | **...** | **platelets_cat** |
+|:-------------:|:-----------:|:-------------:|:---------:|:-------:|:-----------------:|
+|1|1|0|0|...|1|
+|1|0|0|0|...|0|
+|0|0|1|1|...|1|
+
+Next, I created a function to calculate the probability of death using a similar methodology to what I used earlier and applied it to each row. Finally, I took the probability of each observation dying and classified people as dead if the probability was > .5 and alive otherwise.
+
+The resulting proportion of dead was 0.516, about 4.5% lower than expected (the true mortality rate was about .545). While there is a discrepancy, I do not deem this to be significant because my estimations are purely estimations and not the actual patient data used in the study. In addition, I had to estimate the Mechanically Ventilated proportion by using outside data. This leads me to conclude that as a whole, the model does pass a basic sanity test to ensure its predictions reflect the sampled data.
+
+
+# Analysis of Normative Consideration
+
+The ability to predict the mortality of patients in the ICU is a significant achievement in medical technology that has huge potential to save lives. However, it also comes with major ethical considerations surrounding the use of this information. The ICU is a place where confidential information is handled and potentially life-or-death scenarios occur every day. Hence, it is vital that we hold hospitals to the utmost ethics when making decisions regarding this data. 
+
+One major concern is the potential for such a model to propagate unintended discrimination. Patients who are identified as having a low probability of survival may receive less aggressive treatment or fewer resources in order to dedicate more effort toward those who have a higher chance of survival. From the perspective of a strict utilitarian, this would actually have a positive impact. By reallocating resources to those who have higher probabilities of surviving, the end result could be a higher overall survival rate. However, a virtue ethicist could critique this view as overly callous because it goes against the virtues of fairness and compassion.
+
+Factors that influence a patient's prognosis, such as vital signs and medical history, may correlate with systemic inequities like socioeconomic status or access to health care. As a result, these factors could act as proxies for racial and economic discrimination. By making choices on patient care based on this calculated prognosis, we risk further marginalizing a group of people who are already very vulnerable
+
+Another normative consideration is the communication of risk. Death is a very sensitive issue and the manner in which the model's predictions are shared with patients has the potential to lead to significant emotional stress. On the other hand, this could also affect the decision-making of a patient or family in a positive manner. Accordingly, a utilitarian would be of the opinion that we should always tell the patient about his exact calculated probability of survival that way they can make the most informed decisions possible about how to proceed with their life. However, a virtue ethicist again would disagree. This goes directly against the virtues of empathy and prudence. Their approach may be something more like giving the patient a choice to hear an approximate prognosis to help tend to the virtue of honesty while not sacrificing empathy and prudence.
+
+In each of these normative considerations, I lie closely with the opinion of a virtue ethicist. This approach provides more complete considerations, balancing fairness and individual liberties with the maximization of outcomes. In the world of ICU care, decisions deeply affect individual lives, and this perspective ensures that the dignity and rights of all patients are upheld.
+
+# Conclusion
+
+## Synopsis of Impact
+
+While I was critical of this paper, especially from a normative perspective, this paper does have the potential to do a lot of good. Most of my concerns surround the careful use and extrapolation of the model in the future, not blatant flaws with the model itself.
+
+This was an early attempt at solving a very critical issue, predicting the outlook of cancer patients. If used in an ethical way, these findings have the potential to streamline ICU functions for cancer patients and potentially improve patient care. This could primarily occur by supporting more informed discussions about prognosis and goals of care for cancer patients in critical situations. 
+
+## Future work
+
+While this was a great first step, there are additional steps that must be taken in order to actually make use of such a model. The first of which would be to broaden the methods of data collection to be more representative of the general population. Each of the hospitals in the study was a academic medical center in a major city. To help with generalization, data should be collected from a more diverse set of community hospitals in a variety of settings. Additionally, it is important to consider statistical measures of fairness with such a model. This was not considered at all in the study, but any model like this that is actually used in the real world should first be tested using statistical measures of fairness such as Disparate impact, Separation, and Sufficiency. While these are not all requirements as it is not realistic to achieve all 3 due to the incompleteness theorem, it is important to consider all 3 and weigh out their impacts in context. Finally, it would also be interesting to see a similar study that creates separate models for different kinds of cancer. Cancer in different parts of the body can have different outlooks, so it may be helpful to break this up to provide the most specified and accurate results possible.
+
+All in all, this research provides a stepping stone for future research on the topic of creating a model to predict the mortality of cancer patients in the ICU and should be appreciated for its contributions to the field.
+
+
+
+
+\newpage
+
+# References
+
+Groeger, J S et al. “Multicenter outcome study of cancer patients admitted to the intensive care unit: a probability of mortality model.” Journal of clinical oncology : official journal of the American Society of Clinical Oncology vol. 16,2 (1998): 761-70. doi:10.1200/JCO.1998.16.2.761
+
+Groeger, J.S., Glassman, J., Nierman, D.M. et al. Probability of mortality of critically ill cancer patients at 72 h of intensive care unit (ICU) management. Support Care Cancer 11, 686–695 (2003). https://doi.org/10.1007/s00520-003-0498-9
+
+McCarthy, Niall, and Felix Richter. “Infographic: Many U.S. Hospitals Are Running Critically Short of ICU Beds.” Statista Daily Data, Ströer Media, 10 Dec. 2020, www.statista.com/chart/23746/icu-bed-occupancy-rates-in-us-hospital-areas/. 
+
+Wunsch, Hannah, et al. “ICU Occupancy and Mechanical Ventilator Use in the United States.” Critical Care Medicine, U.S. National Library of Medicine, Dec. 2013, pmc.ncbi.nlm.nih.gov/articles/PMC3840149
