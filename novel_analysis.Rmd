@@ -1,0 +1,146 @@
+---
+title: "Novel_analysis"
+author: "Mason Boyles"
+date: "2024-12-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+prob_survive = (211+158) / (211+158+265+177)
+calculate_true_mean_sd <- function(mean_lived, mean_died) {
+  return(mean_lived*prob_survive + mean_died*(1-prob_survive))
+}
+find_prob_categorical <- function(number_in_group) {
+  return(number_in_group/802)
+}
+calculate_prob <- function(evid_prog, ass_req, bedridden, urine, mech_vent,heart_rate_cat, gcs_cat,pao2_fio2_cat, bun_cat, hc03_cat, platelets_cat) {
+  coefficients <- list(
+  intercept = -2.3854, 
+  heart_rate = 0.4012,
+  gcs = 1.3178,       
+  pao2_fio2 = 0.9131, 
+  bun = 0.6609,       
+  hco3 = 0.5281,      
+  platelets = 0.8886, 
+  evid_prog = 0.4535,  
+  ass_req = 0.4775,  
+  bedridden = 1.4949,
+  mech_vent = 1.1764,
+  urine = 0.8293
+  )
+  logit <- coefficients$intercept +
+  coefficients$heart_rate * heart_rate_cat +
+  coefficients$gcs * gcs_cat +
+  coefficients$pao2_fio2 * pao2_fio2_cat +
+  coefficients$bun * bun_cat +
+  coefficients$hco3 * hc03_cat +
+  coefficients$platelets * platelets_cat +
+  coefficients$evid_prog * evid_prog +
+  coefficients$ass_req * ass_req +
+  coefficients$bedridden * bedridden +
+  coefficients$mech_vent * mech_vent +
+  coefficients$urine * urine
+
+
+  probability <- exp(logit) / (1 + exp(logit))
+  return(probability)
+}
+1-prob_survive
+```
+
+```{r cars}
+n_samples <- 1000
+
+# Define the variables based on the provided descriptions
+synthetic_data <- data.frame(
+  heart_rate = rnorm(n_samples, mean = calculate_true_mean_sd(96,103), sd = calculate_true_mean_sd(20, 21)),
+  gcs = rnorm(n_samples, mean = calculate_true_mean_sd(14,12), sd = calculate_true_mean_sd(2, 4)),
+  pao2_fio2 = rnorm(n_samples, mean = calculate_true_mean_sd(269,202), sd = calculate_true_mean_sd(122, 104)),
+  bun = rnorm(n_samples, mean = calculate_true_mean_sd(27,43), sd = calculate_true_mean_sd(24, 28)),
+  hc03 = rnorm(n_samples, mean = calculate_true_mean_sd(26.7,24.1), sd = calculate_true_mean_sd(8.4, 5.4)),
+  platelets = rnorm(n_samples, mean = calculate_true_mean_sd(148.1,90.7), sd = calculate_true_mean_sd(123.7, 96.3)),
+  evid_prog = sample(c(1, 0), size = n_samples, replace = TRUE, prob=c(find_prob_categorical(220+147), 1-find_prob_categorical(220+147))),
+  ass_req = sample(c(1, 0), size = n_samples, replace = TRUE, prob=c(find_prob_categorical(111+77), 1-find_prob_categorical(111+77))),
+  bedridden = sample(c(1, 0), size = n_samples, replace = TRUE, prob=c(find_prob_categorical(19+5), 1-find_prob_categorical(19+5))),
+  urine = sample(c(1, 0), size = n_samples, replace = TRUE, prob=c(((80+24)/(80+24+359+339)), 1-((80+24)/(80+24+359+339)))),
+  mech_vent = sample(c(1, 0), size = n_samples, replace = TRUE, prob=c(.395, 1-.395))
+)
+synthetic_data$heart_rate_cat = as.numeric(synthetic_data$heart_rate >100)
+synthetic_data$gcs_cat = as.numeric(synthetic_data$gcs <= 5)
+synthetic_data$pao2_fio2_cat = as.numeric(synthetic_data$pao2_fio2 < 250)
+synthetic_data$bun_cat = as.numeric(synthetic_data$bun > 40)
+synthetic_data$hc03_cat = as.numeric(synthetic_data$hc03 < 20)
+synthetic_data$platelets_cat = as.numeric(synthetic_data$platelets < 100)
+
+final_data <- synthetic_data[, -c(1, 2,3,4,5,6)]
+total_dead = 0
+for (i in 1:nrow(final_data)) {
+  row_data = final_data[i, ]
+  prob = calculate_prob(row_data$evid_prog, row_data$ass_req, row_data$bedridden, row_data$urine, row_data$mech_vent, row_data$heart_rate_cat, row_data$gcs_cat, row_data$pao2_fio2_cat, row_data$bun_cat, row_data$hc03_cat, row_data$platelets_cat)
+  if (prob>.5){
+    total_dead = total_dead+1
+  }
+}
+
+overal_prob_dead = total_dead / 1000
+head(final_data)
+```
+
+```{r}
+coefficients <- list(
+  intercept = -2.3854, 
+  heart_rate = 0.4012,
+  gcs = 1.3178,       
+  pao2_fio2 = 0.9131, 
+  bun = 0.6609,       
+  hco3 = 0.5281,      
+  platelets = 0.8886, 
+  evid_prog = 0.4535,  
+  ass_req = 0.4775,  
+  bedridden = 1.4949,
+  mech_vent = 1.1764,
+  urine = 0.8293
+)
+
+
+patient_data <- list(
+  heart_rate = 1,      
+  gcs = 0,
+  pao2_fio2 = 1,          
+  bun = 0,           
+  hco3 = 1,         
+  platelets = 1,  
+  evid_prog = 1,    
+  ass_req = 1,   
+  bedridden = 0,      
+  mech_vent = 1,      
+  urine = 0            
+)
+
+
+logit <- coefficients$intercept +
+  coefficients$heart_rate * patient_data$heart_rate +
+  coefficients$gcs * patient_data$gcs +
+  coefficients$pao2_fio2 * patient_data$pao2_fio2 +
+  coefficients$bun * patient_data$bun +
+  coefficients$hco3 * patient_data$hco3 +
+  coefficients$platelets * patient_data$platelets +
+  coefficients$evid_prog * patient_data$evid_prog +
+  coefficients$ass_req * patient_data$ass_req +
+  coefficients$bedridden * patient_data$bedridden +
+  coefficients$mech_vent * patient_data$mech_vent +
+  coefficients$urine * patient_data$urine
+
+
+probability <- exp(logit) / (1 + exp(logit))
+
+
+cat("Logit (g(x)):", logit, "\n")
+cat("Probability of mortality:", probability, "\n")
+```
+
+
